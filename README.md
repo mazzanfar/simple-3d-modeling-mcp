@@ -1,6 +1,6 @@
 # simple-3d-modeling-mcp
 
-An MCP (Model Context Protocol) server that lets anyone create, iterate on, and export 3D models through natural conversation with an LLM. **Zero setup** — the OpenSCAD engine is bundled via WebAssembly. No system install needed.
+An MCP (Model Context Protocol) server that lets anyone create, iterate on, and export 3D models through natural conversation with an LLM. Works with **any MCP-compatible client** — Claude, ChatGPT, Codex, and more. **Zero setup** — the OpenSCAD engine is bundled via WebAssembly. No system install needed.
 
 ## Features
 
@@ -13,6 +13,8 @@ An MCP (Model Context Protocol) server that lets anyone create, iterate on, and 
 - **Native OpenSCAD support** — optionally install OpenSCAD for faster rendering and library support (BOSL2, MCAD)
 
 ## Quick Start
+
+This server uses the standard [Model Context Protocol](https://modelcontextprotocol.io) over **stdio**, so it works with any MCP-compatible client. Pick yours below:
 
 ### Claude Desktop
 
@@ -34,6 +36,31 @@ Add to your `claude_desktop_config.json`:
 ```bash
 claude mcp add openscad -- npx -y simple-3d-modeling-mcp
 ```
+
+### ChatGPT Desktop (macOS)
+
+Go to **Settings → MCP Servers → Add Server**, then enter:
+
+- **Name:** `openscad`
+- **Command:** `npx -y simple-3d-modeling-mcp`
+
+### OpenAI Codex CLI
+
+```bash
+codex mcp add openscad -- npx -y simple-3d-modeling-mcp
+```
+
+### Other MCP Clients (Cursor, Windsurf, etc.)
+
+Any client that supports MCP over stdio can use this server. The command to run is:
+
+```bash
+npx -y simple-3d-modeling-mcp
+```
+
+Consult your client's documentation for how to register an MCP server with that command.
+
+---
 
 That's it. No OpenSCAD install. No PATH configuration.
 
@@ -62,6 +89,18 @@ On first render, an interactive 3D viewer automatically opens in your browser:
 - **Export** — download STL directly from the viewer
 - **Controls** — rotate (drag), zoom (scroll), pan (right-drag), wireframe, auto-rotate, grid
 
+## Compatibility Notes
+
+| Client | Inline Image Previews | Export / Validate / Viewer |
+|--------|----------------------|---------------------------|
+| Claude Desktop | Yes | Yes |
+| Claude Code | Yes | Yes |
+| ChatGPT Desktop | Yes | Yes |
+| OpenAI Codex CLI | Depends on terminal | Yes |
+| Cursor / Windsurf | Yes | Yes |
+
+> **Tip:** Even if a client doesn't render inline images, the live browser viewer (`open_viewer`) works everywhere — it opens a standalone browser tab with full 3D interaction.
+
 ## Native OpenSCAD (Optional)
 
 For faster rendering and library support, install [OpenSCAD](https://openscad.org/downloads.html). The server auto-detects it on your PATH and uses it when available.
@@ -77,15 +116,15 @@ For faster rendering and library support, install [OpenSCAD](https://openscad.or
 
 > **You:** Make me a phone stand that holds the phone at 60 degrees
 >
-> **Claude:** *calls render* — Here's a phone stand with a 60 degree viewing angle. The base is 80mm wide with a 3mm lip. The interactive 3D viewer is open in your browser too. Want me to adjust anything?
+> **LLM:** *calls render* — Here's a phone stand with a 60 degree viewing angle. The base is 80mm wide with a 3mm lip. The interactive 3D viewer is open in your browser too. Want me to adjust anything?
 >
 > **You:** Make it thicker and add a cable slot in the back
 >
-> **Claude:** *modifies code, calls render* — Updated! Wall thickness is now 4mm with a 12mm cable slot. Check the viewer to spin it around.
+> **LLM:** *modifies code, calls render* — Updated! Wall thickness is now 4mm with a 12mm cable slot. Check the viewer to spin it around.
 >
 > **You:** Perfect! Export it for my 3D printer
 >
-> **Claude:** *calls export(format="3mf")* — Exported to ~/Desktop/phone-stand.3mf (42 KB). Ready to slice and print!
+> **LLM:** *calls export(format="3mf")* — Exported to ~/Desktop/phone-stand.3mf (42 KB). Ready to slice and print!
 
 ## Development
 
