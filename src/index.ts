@@ -18,6 +18,7 @@ import { OPENSCAD_CHEATSHEET } from "./cheatsheet.js";
 import { ViewerServer } from "./viewer/index.js";
 import { renderMultiView } from "./rendering/multiview.js";
 import { renderTurntable } from "./rendering/turntable.js";
+import { renderStlToPng } from "./rendering/software-renderer.js";
 
 // ---------------------------------------------------------------------------
 // Bootstrap
@@ -90,22 +91,36 @@ server.tool(
     colorscheme: z.string().optional().default("Tomorrow Night").describe("Color scheme name"),
   },
   async ({ code, view, width, height, params, colorscheme }) => {
+    const w = width ?? 1024;
+    const h = height ?? 768;
+
+    // Always push to viewer first (STL export works even when PNG doesn't)
+    const viewerUrl = await pushToViewer(code, params);
+
+    // Try native PNG render
     const result = await engine.renderPng({
-      code, camera: view, imageSize: [width ?? 1024, height ?? 768], params, colorscheme,
+      code, camera: view, imageSize: [w, h], params, colorscheme,
     });
 
-    if (!result.success || !result.outputBytes) {
+    let imageBytes: Uint8Array | undefined = result.outputBytes;
+
+    // Fallback: software render from STL when WASM can't produce PNG
+    if (!imageBytes) {
+      const stl = await engine.exportModel({ code, format: "stl", params });
+      if (stl.success && stl.outputBytes) {
+        imageBytes = await renderStlToPng({ stlBytes: stl.outputBytes, width: w, height: h, camera: view });
+      }
+    }
+
+    if (!imageBytes) {
       return {
         content: [{ type: "text", text: `Render failed.\n\n${result.errors.join("\n") || result.stderr}` }],
         isError: true,
       };
     }
 
-    // Push to viewer
-    const viewerUrl = await pushToViewer(code, params);
-
     const parts: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [
-      { type: "image" as const, data: Buffer.from(result.outputBytes).toString("base64"), mimeType: "image/png" },
+      { type: "image" as const, data: Buffer.from(imageBytes).toString("base64"), mimeType: "image/png" },
     ];
 
     if (result.warnings.length > 0) {
@@ -131,18 +146,30 @@ server.tool(
     params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
   },
   async ({ code, frames, width, height, params }) => {
+    // Always push to viewer
+    await pushToViewer(code, params);
+
     const result = await renderTurntable(engine, {
       code, frames: frames ?? 24, size: [width ?? 512, height ?? 512], params,
     });
 
     if (!result.success || !result.outputBytes) {
+      // Fallback: single software-rendered preview
+      const stl = await engine.exportModel({ code, format: "stl", params });
+      if (stl.success && stl.outputBytes) {
+        const fallback = await renderStlToPng({ stlBytes: stl.outputBytes, width: width ?? 512, height: height ?? 512 });
+        return {
+          content: [
+            { type: "image" as const, data: Buffer.from(fallback).toString("base64"), mimeType: "image/png" },
+            { type: "text" as const, text: "Note: turntable animation not available with WASM engine. Showing static preview. Install native OpenSCAD for animated turntables." },
+          ],
+        };
+      }
       return {
         content: [{ type: "text", text: `Turntable render failed.\n\n${result.errors.join("\n")}` }],
         isError: true,
       };
     }
-
-    await pushToViewer(code, params);
 
     return {
       content: [{
@@ -166,19 +193,31 @@ server.tool(
     params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
   },
   async ({ code, views, width, height, params }) => {
+    // Always push to viewer
+    await pushToViewer(code, params);
+
     const result = await renderMultiView(engine, {
       code, views: views ?? ["front", "right", "top", "perspective"],
       cellSize: [width ?? 512, height ?? 512], params,
     });
 
     if (!result.success || !result.outputBytes) {
+      // Fallback: single software-rendered preview
+      const stl = await engine.exportModel({ code, format: "stl", params });
+      if (stl.success && stl.outputBytes) {
+        const fallback = await renderStlToPng({ stlBytes: stl.outputBytes, width: width ?? 512, height: height ?? 512 });
+        return {
+          content: [
+            { type: "image" as const, data: Buffer.from(fallback).toString("base64"), mimeType: "image/png" },
+            { type: "text" as const, text: "Note: multi-view grid not available with WASM engine. Showing single preview. Install native OpenSCAD for multi-view grids." },
+          ],
+        };
+      }
       return {
         content: [{ type: "text", text: `Multi-view render failed.\n\n${result.errors.join("\n")}` }],
         isError: true,
       };
     }
-
-    await pushToViewer(code, params);
 
     return {
       content: [{
