@@ -51,6 +51,42 @@ export function generateViewerHtml(): string {
   }
   .export-btn:hover { background: rgba(74,158,255,0.25); }
 
+  /* Appearance controls */
+  .appearance-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 0; font-size: 11px; color: #888;
+  }
+  .appearance-row input[type="color"] {
+    -webkit-appearance: none; border: 1px solid #444; border-radius: 4px;
+    width: 28px; height: 22px; cursor: pointer; background: none; padding: 0;
+  }
+  .appearance-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+  .appearance-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
+  .toggle-btn {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    color: #aaa; padding: 3px 10px; border-radius: 4px; font-size: 10px; cursor: pointer;
+  }
+  .toggle-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+  /* Light mode overrides */
+  body.light { background: #f0f0f0; }
+  body.light #sidebar { background: #e8e8e8; border-left-color: #ccc; }
+  body.light .sidebar-section { border-bottom-color: #d0d0d0; }
+  body.light .sidebar-section h4 { color: #666; }
+  body.light .dim-row { color: #555; border-bottom-color: rgba(0,0,0,0.05); }
+  body.light .dim-row .val { color: #333; }
+  body.light .history-item { color: #888; }
+  body.light .history-item:hover { background: rgba(0,0,0,0.05); }
+  body.light .history-item.active { background: rgba(74,158,255,0.15); color: #2a7de1; }
+  body.light #hint { color: #999; }
+  body.light #controls button { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); color: #555; }
+  body.light #controls button:hover { background: rgba(0,0,0,0.12); color: #222; }
+  body.light .toggle-btn { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); color: #555; }
+  body.light .toggle-btn:hover { background: rgba(0,0,0,0.12); color: #222; }
+  body.light .appearance-row { color: #555; }
+  body.light .appearance-row input[type="color"] { border-color: #bbb; }
+  body.light #slicer-select { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.12); color: #555; }
+
   /* Controls bar */
   #controls {
     position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
@@ -110,9 +146,33 @@ export function generateViewerHtml(): string {
     </div>
   </div>
   <div class="sidebar-section">
+    <h4>Appearance</h4>
+    <div class="appearance-row">
+      <span>Theme</span>
+      <button class="toggle-btn" id="theme-btn" onclick="toggleTheme()">Light</button>
+    </div>
+    <div class="appearance-row">
+      <span>Object Color</span>
+      <input type="color" id="color-picker" value="#ff8c00" onchange="changeColor(this.value)">
+    </div>
+  </div>
+  <div class="sidebar-section">
     <h4>Export</h4>
     <a id="download-stl" class="export-btn" style="display:none;">↓ Download STL</a>
-    <button id="open-slicer" class="export-btn" style="display:none;" onclick="openInSlicer()">🔧 Open in Slicer</button>
+    <div id="slicer-row" style="display:none; margin-top:6px;">
+      <select id="slicer-select" style="
+        width:100%; padding:7px 8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+        color:#aaa; border-radius:6px 6px 0 0; font-size:12px; cursor:pointer; appearance:auto;
+      ">
+        <option value="default">System Default</option>
+        <option value="bambu">Bambu Studio</option>
+        <option value="orca">OrcaSlicer</option>
+        <option value="prusa">PrusaSlicer</option>
+        <option value="cura">UltiMaker Cura</option>
+        <option value="creality">Creality Print</option>
+      </select>
+      <button id="open-slicer-btn" class="export-btn" style="margin-top:0; border-radius:0 0 6px 6px; border-top:0;" onclick="openInSlicer()">🔧 Open in Slicer</button>
+    </div>
   </div>
 </div>
 
@@ -207,7 +267,18 @@ class OrbitControls {
     el.addEventListener('mouseup', () => this._state = 0);
     el.addEventListener('wheel', e => {
       e.preventDefault();
-      this.spherical.radius *= e.deltaY > 0 ? 1.1 : 0.9;
+      const zoomIn = e.deltaY < 0;
+      const factor = zoomIn ? 0.9 : 1.1;
+
+      // Raycast from cursor to shift target toward zoom point
+      const rect = el.getBoundingClientRect();
+      const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      const ray = new THREE.Vector3(mx, my, 0.5).unproject(this.camera).sub(this.camera.position).normalize();
+      const shift = 1 - factor;
+      this.target.addScaledVector(ray, this.spherical.radius * shift);
+
+      this.spherical.radius *= factor;
       this.spherical.radius = Math.max(0.1, Math.min(10000, this.spherical.radius));
     }, { passive: false });
     el.addEventListener('contextmenu', e => e.preventDefault());
@@ -238,13 +309,27 @@ renderer.setSize(viewport.clientWidth, viewport.clientHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 viewport.appendChild(renderer.domElement);
 
+scene.background = new THREE.Color(0x1a1a2e);
 scene.add(new THREE.AmbientLight(0x404060, 0.6));
 const d1 = new THREE.DirectionalLight(0xffffff, 0.8); d1.position.set(5,10,7); scene.add(d1);
 const d2 = new THREE.DirectionalLight(0x8888ff, 0.3); d2.position.set(-5,-3,-5); scene.add(d2);
 
-let gridHelper = new THREE.GridHelper(1000, 100, 0x333355, 0x222244);
+let isDark = true;
+let gridSize = 1000;
+let gridHelper = new THREE.GridHelper(gridSize, gridSize / 10, 0x333355, 0x222244);
 scene.add(gridHelper);
 let gridVisible = true;
+
+function rebuildGrid() {
+  scene.remove(gridHelper);
+  gridHelper = new THREE.GridHelper(
+    gridSize, gridSize / 10,
+    isDark ? 0x333355 : 0xccccdd,
+    isDark ? 0x222244 : 0xddddee
+  );
+  gridHelper.visible = gridVisible;
+  scene.add(gridHelper);
+}
 
 camera.position.set(100, 75, 100); camera.lookAt(0,0,0);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -269,11 +354,8 @@ function loadSTL(buffer, version, title) {
   const r = geo.boundingSphere.radius;
 
   // Resize grid to fit model
-  scene.remove(gridHelper);
-  const gridSize = Math.max(200, Math.ceil(r * 4 / 100) * 100);
-  gridHelper = new THREE.GridHelper(gridSize, gridSize / 10, 0x333355, 0x222244);
-  gridHelper.visible = gridVisible;
-  scene.add(gridHelper);
+  gridSize = Math.max(200, Math.ceil(r * 4 / 100) * 100);
+  rebuildGrid();
 
   const d = r * 2.8;
   initCamPos = new THREE.Vector3(d*0.7, d*0.5, d*0.7);
@@ -299,7 +381,7 @@ function loadSTL(buffer, version, title) {
   dl.href = '/model/' + version;
   dl.download = (title || 'model') + '.stl';
   dl.style.display = 'block';
-  document.getElementById('open-slicer').style.display = 'block';
+  document.getElementById('slicer-row').style.display = 'block';
 }
 
 // --- WebSocket ---
@@ -382,24 +464,44 @@ window.resetCamera = () => { if (initCamPos) controls.reset(initCamPos, new THRE
 window.toggleWireframe = () => { isWireframe = !isWireframe; if (mesh) mesh.material = isWireframe ? wireMat : material; };
 window.toggleAutoRotate = () => { controls.autoRotate = !controls.autoRotate; };
 window.toggleGrid = () => { gridVisible = !gridVisible; gridHelper.visible = gridVisible; };
+
+window.toggleTheme = () => {
+  isDark = !isDark;
+  document.body.classList.toggle('light', !isDark);
+  document.getElementById('theme-btn').textContent = isDark ? 'Light' : 'Dark';
+  scene.background = new THREE.Color(isDark ? 0x1a1a2e : 0xf0f0f0);
+  rebuildGrid();
+};
+
+window.changeColor = (hex) => {
+  const c = new THREE.Color(hex);
+  material.color.copy(c);
+  wireMat.color.copy(c);
+};
 window.openInSlicer = async () => {
   if (!currentVersion) return;
-  const btn = document.getElementById('open-slicer');
+  const btn = document.getElementById('open-slicer-btn');
+  const slicer = document.getElementById('slicer-select').value;
   btn.textContent = 'Opening...';
   try {
-    const res = await fetch('/open-in-slicer/' + currentVersion, { method: 'POST' });
-    if (!res.ok) btn.textContent = 'Failed — no slicer found';
+    const res = await fetch('/open-in-slicer/' + currentVersion + '?slicer=' + encodeURIComponent(slicer), { method: 'POST' });
+    if (!res.ok) btn.textContent = 'Failed — slicer not found';
     else btn.textContent = '✓ Opened';
   } catch { btn.textContent = 'Failed'; }
   setTimeout(() => { btn.textContent = '🔧 Open in Slicer'; }, 3000);
 };
 
 // --- Resize ---
-addEventListener('resize', () => {
-  camera.aspect = viewport.clientWidth / viewport.clientHeight;
+function onResize() {
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+  if (w === 0 || h === 0) return;
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-});
+  renderer.setSize(w, h);
+}
+new ResizeObserver(onResize).observe(viewport);
+addEventListener('resize', onResize);
 
 // --- Render loop ---
 function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }

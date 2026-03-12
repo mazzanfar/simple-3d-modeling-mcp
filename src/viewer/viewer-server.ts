@@ -7,6 +7,34 @@ import { exec } from "node:child_process";
 import { ViewerState } from "./viewer-state.js";
 import { generateViewerHtml } from "./viewer-html.js";
 
+const SLICERS: Record<string, { mac?: string; win?: string; linux?: string }> = {
+  bambu:   { mac: "BambuStudio",          win: "BambuStudio",       linux: "bambu-studio" },
+  orca:    { mac: "OrcaSlicer",           win: "orca-slicer",       linux: "orca-slicer" },
+  prusa:   { mac: "PrusaSlicer",          win: "prusa-slicer",      linux: "prusa-slicer" },
+  cura:    { mac: "UltiMaker Cura",       win: "UltiMaker-Cura",    linux: "cura" },
+  creality: { mac: "Creality Print",      win: "Creality Print",     linux: "creality-print" },
+};
+
+function buildSlicerCommand(slicer: string, filePath: string, os: string): string {
+  if (slicer === "default") {
+    if (os === "darwin") return `open "${filePath}"`;
+    if (os === "win32") return `start "" "${filePath}"`;
+    return `xdg-open "${filePath}"`;
+  }
+
+  const entry = SLICERS[slicer];
+  if (!entry) {
+    // Unknown slicer — try as app name directly
+    if (os === "darwin") return `open -a "${slicer}" "${filePath}"`;
+    if (os === "win32") return `start "" "${slicer}" "${filePath}"`;
+    return `${slicer} "${filePath}"`;
+  }
+
+  if (os === "darwin") return `open -a "${entry.mac}" "${filePath}"`;
+  if (os === "win32") return `start "" "${entry.win}" "${filePath}"`;
+  return `${entry.linux} "${filePath}"`;
+}
+
 export class ViewerServer {
   private _server: Server | null = null;
   private _wss: WebSocketServer | null = null;
@@ -48,19 +76,25 @@ export class ViewerServer {
             res.writeHead(404); res.end("Not found");
           }
         } else if (req.method === "POST" && req.url?.startsWith("/open-in-slicer/")) {
-          const version = parseInt(req.url.split("/")[2], 10);
+          // URL format: /open-in-slicer/{version}?slicer={name}
+          const urlParts = req.url.split("?");
+          const version = parseInt(urlParts[0].split("/")[2], 10);
+          const params = new URLSearchParams(urlParts[1] ?? "");
+          const slicer = params.get("slicer") ?? "default";
+
           const model = this.state.getVersion(version);
           if (!model) {
             res.writeHead(404); res.end("Model not found");
             return;
           }
-          // Write STL to temp file and open with OS default handler
+
           const dir = join(tmpdir(), "simple-3d-modeling-mcp");
           await mkdir(dir, { recursive: true });
           const filePath = join(dir, `model-v${version}.stl`);
           await writeFile(filePath, Buffer.from(model.stlBytes));
+
           const os = platform();
-          const cmd = os === "darwin" ? `open "${filePath}"` : os === "win32" ? `start "" "${filePath}"` : `xdg-open "${filePath}"`;
+          const cmd = buildSlicerCommand(slicer, filePath, os);
           exec(cmd, (err) => {
             if (err) {
               res.writeHead(500); res.end("Failed to open slicer");

@@ -193,8 +193,10 @@ export async function renderStlToPng(opts: SoftwareRenderOptions): Promise<Uint8
   const centerZ = (minZ + maxZ) / 2;
   const maxDim = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
 
-  if (distance <= 0) {
-    distance = maxDim * 4;
+  // Auto-distance: ensure the model fits in frame regardless of provided distance
+  const autoDistance = maxDim * 4;
+  if (distance <= 0 || distance < autoDistance) {
+    distance = autoDistance;
   }
 
   // Transform triangles: center, translate, rotate, then project
