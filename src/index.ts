@@ -175,7 +175,7 @@ server.tool(
       content: [{
         type: "image" as const,
         data: Buffer.from(result.outputBytes).toString("base64"),
-        mimeType: "image/apng",
+        mimeType: "image/png",
       }],
     };
   }
@@ -250,9 +250,28 @@ server.tool(
     }
 
     const size = result.outputBytes ? (result.outputBytes.length / 1024).toFixed(1) + " KB" : "unknown size";
-    let msg = `Exported successfully → ${result.outputPath} (${size})`;
+    const outputName = filename ?? `model.${format ?? "stl"}`;
+
+    const parts: Array<{ type: "text"; text: string } | { type: "resource"; resource: { uri: string; mimeType: string; blob: string } }> = [];
+
+    // Return the file as an embedded resource so sandboxed clients can access it
+    if (result.outputBytes) {
+      parts.push({
+        type: "resource" as const,
+        resource: {
+          uri: `file:///${outputName}`,
+          mimeType: "application/octet-stream",
+          blob: Buffer.from(result.outputBytes).toString("base64"),
+        },
+      });
+    }
+
+    let msg = `Exported ${outputName} (${size})`;
+    if (result.outputPath) msg += `\nAlso saved to: ${result.outputPath}`;
     if (result.warnings.length > 0) msg += `\n\nWarnings:\n${result.warnings.join("\n")}`;
-    return { content: [{ type: "text", text: msg }] };
+    parts.push({ type: "text" as const, text: msg });
+
+    return { content: parts };
   }
 );
 

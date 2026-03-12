@@ -158,7 +158,7 @@ function edgeFunction(a: [number, number], b: [number, number], c: [number, numb
 export async function renderStlToPng(opts: SoftwareRenderOptions): Promise<Uint8Array> {
   const { stlBytes, width, height } = opts;
   const bg = opts.background ?? { r: 22, g: 22, b: 42 };
-  const mc = opts.modelColor ?? { r: 110, g: 200, b: 220 };
+  const mc = opts.modelColor ?? { r: 255, g: 140, b: 0 };
 
   const triangles = parseSTL(stlBytes);
   if (triangles.length === 0) {

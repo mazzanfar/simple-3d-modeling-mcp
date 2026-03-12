@@ -1,5 +1,9 @@
 import { createServer, type Server } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
+import { writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir, platform } from "node:os";
+import { exec } from "node:child_process";
 import { ViewerState } from "./viewer-state.js";
 import { generateViewerHtml } from "./viewer-html.js";
 
@@ -26,7 +30,7 @@ export class ViewerServer {
     if (this._url) return this._url;
 
     return new Promise((resolve, reject) => {
-      const server = createServer((req, res) => {
+      const server = createServer(async (req, res) => {
         if (req.method === "GET" && (req.url === "/" || req.url === "")) {
           const html = generateViewerHtml();
           res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
@@ -43,6 +47,27 @@ export class ViewerServer {
           } else {
             res.writeHead(404); res.end("Not found");
           }
+        } else if (req.method === "POST" && req.url?.startsWith("/open-in-slicer/")) {
+          const version = parseInt(req.url.split("/")[2], 10);
+          const model = this.state.getVersion(version);
+          if (!model) {
+            res.writeHead(404); res.end("Model not found");
+            return;
+          }
+          // Write STL to temp file and open with OS default handler
+          const dir = join(tmpdir(), "simple-3d-modeling-mcp");
+          await mkdir(dir, { recursive: true });
+          const filePath = join(dir, `model-v${version}.stl`);
+          await writeFile(filePath, Buffer.from(model.stlBytes));
+          const os = platform();
+          const cmd = os === "darwin" ? `open "${filePath}"` : os === "win32" ? `start "" "${filePath}"` : `xdg-open "${filePath}"`;
+          exec(cmd, (err) => {
+            if (err) {
+              res.writeHead(500); res.end("Failed to open slicer");
+            } else {
+              res.writeHead(200); res.end("OK");
+            }
+          });
         } else {
           res.writeHead(404); res.end("Not found");
         }

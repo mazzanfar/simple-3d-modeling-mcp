@@ -11,8 +11,9 @@ export function generateViewerHtml(): string {
 <title>OpenSCAD MCP — 3D Viewer</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; }
   body { background: #1a1a2e; overflow: hidden; font-family: system-ui, sans-serif; display: flex; }
-  #viewport { flex: 1; position: relative; }
+  #viewport { flex: 1; position: relative; min-height: 0; }
   canvas { display: block; }
 
   /* Sidebar */
@@ -111,6 +112,7 @@ export function generateViewerHtml(): string {
   <div class="sidebar-section">
     <h4>Export</h4>
     <a id="download-stl" class="export-btn" style="display:none;">↓ Download STL</a>
+    <button id="open-slicer" class="export-btn" style="display:none;" onclick="openInSlicer()">🔧 Open in Slicer</button>
   </div>
 </div>
 
@@ -121,8 +123,32 @@ export function generateViewerHtml(): string {
 <script type="module">
 import * as THREE from 'three';
 
-// --- STL Parser (binary) ---
-function parseSTL(buffer) {
+// --- STL Parser (binary + ASCII) ---
+function isAsciiSTL(buffer) {
+  const header = new Uint8Array(buffer, 0, Math.min(80, buffer.byteLength));
+  const str = String.fromCharCode.apply(null, header);
+  return str.startsWith('solid ') || str.startsWith('solid\\n');
+}
+
+function parseAsciiSTLViewer(buffer) {
+  const text = new TextDecoder().decode(buffer);
+  const facetRe = /facet\\s+normal\\s+([\\-\\d.e+]+)\\s+([\\-\\d.e+]+)\\s+([\\-\\d.e+]+)\\s+outer\\s+loop\\s+vertex\\s+([\\-\\d.e+]+)\\s+([\\-\\d.e+]+)\\s+([\\-\\d.e+]+)\\s+vertex\\s+([\\-\\d.e+]+)\\s+([\\-\\d.e+]+)\\s+([\\-\\d.e+]+)\\s+vertex\\s+([\\-\\d.e+]+)\\s+([\\-\\d.e+]+)\\s+([\\-\\d.e+]+)\\s+endloop\\s+endfacet/gi;
+  const verts = [], norms = [];
+  let m;
+  while ((m = facetRe.exec(text)) !== null) {
+    const nx = parseFloat(m[1]), ny = parseFloat(m[2]), nz = parseFloat(m[3]);
+    for (let v = 0; v < 3; v++) {
+      verts.push(parseFloat(m[4+v*3]), parseFloat(m[5+v*3]), parseFloat(m[6+v*3]));
+      norms.push(nx, ny, nz);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(norms), 3));
+  return geo;
+}
+
+function parseBinarySTLViewer(buffer) {
   const data = new DataView(buffer);
   const triangles = data.getUint32(80, true);
   const geo = new THREE.BufferGeometry();
@@ -142,6 +168,10 @@ function parseSTL(buffer) {
   geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
   return geo;
+}
+
+function parseSTL(buffer) {
+  return isAsciiSTL(buffer) ? parseAsciiSTLViewer(buffer) : parseBinarySTLViewer(buffer);
 }
 
 // --- Orbit Controls (simplified) ---
@@ -212,15 +242,15 @@ scene.add(new THREE.AmbientLight(0x404060, 0.6));
 const d1 = new THREE.DirectionalLight(0xffffff, 0.8); d1.position.set(5,10,7); scene.add(d1);
 const d2 = new THREE.DirectionalLight(0x8888ff, 0.3); d2.position.set(-5,-3,-5); scene.add(d2);
 
-let gridHelper = new THREE.GridHelper(200, 20, 0x333355, 0x222244);
+let gridHelper = new THREE.GridHelper(1000, 100, 0x333355, 0x222244);
 scene.add(gridHelper);
 let gridVisible = true;
 
 camera.position.set(100, 75, 100); camera.lookAt(0,0,0);
 const controls = new OrbitControls(camera, renderer.domElement);
 
-const material = new THREE.MeshPhongMaterial({ color: 0x4a9eff, specular: 0x222244, shininess: 40 });
-const wireMat = new THREE.MeshPhongMaterial({ color: 0x4a9eff, wireframe: true });
+const material = new THREE.MeshPhongMaterial({ color: 0xff8c00, specular: 0x332200, shininess: 40 });
+const wireMat = new THREE.MeshPhongMaterial({ color: 0xff8c00, wireframe: true });
 let mesh = null;
 let isWireframe = false;
 let currentVersion = null;
@@ -237,6 +267,14 @@ function loadSTL(buffer, version, title) {
   scene.add(mesh);
 
   const r = geo.boundingSphere.radius;
+
+  // Resize grid to fit model
+  scene.remove(gridHelper);
+  const gridSize = Math.max(200, Math.ceil(r * 4 / 100) * 100);
+  gridHelper = new THREE.GridHelper(gridSize, gridSize / 10, 0x333355, 0x222244);
+  gridHelper.visible = gridVisible;
+  scene.add(gridHelper);
+
   const d = r * 2.8;
   initCamPos = new THREE.Vector3(d*0.7, d*0.5, d*0.7);
   camera.position.copy(initCamPos); camera.lookAt(0,0,0);
@@ -261,6 +299,7 @@ function loadSTL(buffer, version, title) {
   dl.href = '/model/' + version;
   dl.download = (title || 'model') + '.stl';
   dl.style.display = 'block';
+  document.getElementById('open-slicer').style.display = 'block';
 }
 
 // --- WebSocket ---
@@ -343,6 +382,17 @@ window.resetCamera = () => { if (initCamPos) controls.reset(initCamPos, new THRE
 window.toggleWireframe = () => { isWireframe = !isWireframe; if (mesh) mesh.material = isWireframe ? wireMat : material; };
 window.toggleAutoRotate = () => { controls.autoRotate = !controls.autoRotate; };
 window.toggleGrid = () => { gridVisible = !gridVisible; gridHelper.visible = gridVisible; };
+window.openInSlicer = async () => {
+  if (!currentVersion) return;
+  const btn = document.getElementById('open-slicer');
+  btn.textContent = 'Opening...';
+  try {
+    const res = await fetch('/open-in-slicer/' + currentVersion, { method: 'POST' });
+    if (!res.ok) btn.textContent = 'Failed — no slicer found';
+    else btn.textContent = '✓ Opened';
+  } catch { btn.textContent = 'Failed'; }
+  setTimeout(() => { btn.textContent = '🔧 Open in Slicer'; }, 3000);
+};
 
 // --- Resize ---
 addEventListener('resize', () => {
