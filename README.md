@@ -23,7 +23,7 @@ Add to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "openscad": {
+    "simple-3d-modeling": {
       "command": "npx",
       "args": ["-y", "simple-3d-modeling-mcp"]
     }
@@ -34,20 +34,20 @@ Add to your `claude_desktop_config.json`:
 ### Claude Code
 
 ```bash
-claude mcp add openscad -- npx -y simple-3d-modeling-mcp
+claude mcp add simple-3d-modeling -- npx -y simple-3d-modeling-mcp
 ```
 
 ### ChatGPT Desktop (macOS)
 
 Go to **Settings → MCP Servers → Add Server**, then enter:
 
-- **Name:** `openscad`
+- **Name:** `simple-3d-modeling`
 - **Command:** `npx -y simple-3d-modeling-mcp`
 
 ### OpenAI Codex CLI
 
 ```bash
-codex mcp add openscad -- npx -y simple-3d-modeling-mcp
+codex mcp add simple-3d-modeling -- npx -y simple-3d-modeling-mcp
 ```
 
 ### Other MCP Clients (Cursor, Windsurf, etc.)
