@@ -24,10 +24,7 @@ function buildSlicerCommand(slicer: string, filePath: string, os: string): { cmd
 
   const entry = SLICERS[slicer];
   if (!entry) {
-    // Unknown slicer — try as app name directly
-    if (os === "darwin") return { cmd: "open", args: ["-a", slicer, filePath] };
-    if (os === "win32") return { cmd: "cmd", args: ["/c", "start", "", slicer, filePath] };
-    return { cmd: slicer, args: [filePath] };
+    throw new Error(`Unknown slicer: "${slicer}". Valid options: ${Object.keys(SLICERS).join(", ")}`);
   }
 
   if (os === "darwin") return { cmd: "open", args: ["-a", entry.mac!, filePath] };
@@ -94,7 +91,13 @@ export class ViewerServer {
           await writeFile(filePath, Buffer.from(model.stlBytes));
 
           const os = platform();
-          const { cmd, args } = buildSlicerCommand(slicer, filePath, os);
+          let cmd: string, args: string[];
+          try {
+            ({ cmd, args } = buildSlicerCommand(slicer, filePath, os));
+          } catch {
+            res.writeHead(400); res.end(`Invalid slicer. Valid options: default, ${Object.keys(SLICERS).join(", ")}`);
+            return;
+          }
           execFile(cmd, args, (err) => {
             if (err) {
               res.writeHead(500); res.end("Failed to open slicer");
