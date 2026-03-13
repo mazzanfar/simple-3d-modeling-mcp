@@ -1,0 +1,47 @@
+{
+  "manifest_version": "0.3",
+  "name": "simple-3d-modeling",
+  "display_name": "Simple 3D Modeling",
+  "version": "1.2.7",
+  "description": "Create, preview, and export 3D models through natural conversation. Zero setup — OpenSCAD engine bundled via WebAssembly.",
+  "author": {
+    "name": "mazzanfar",
+    "url": "https://github.com/mazzanfar"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mazzanfar/simple-3d-modeling-mcp.git"
+  },
+  "homepage": "https://github.com/mazzanfar/simple-3d-modeling-mcp",
+  "support": "https://github.com/mazzanfar/simple-3d-modeling-mcp/issues",
+  "keywords": ["3d-modeling", "openscad", "cad", "stl", "3d-printing"],
+  "license": "GPL-2.0",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {}
+    }
+  },
+  "tools": [
+    { "name": "render", "description": "Render OpenSCAD code to a PNG preview image" },
+    { "name": "render_turntable", "description": "Render a 360° turntable animation" },
+    { "name": "render_multiview", "description": "Render multi-view grid (front, right, top, perspective)" },
+    { "name": "export", "description": "Export to STL, 3MF, AMF, OFF, DXF, SVG" },
+    { "name": "validate", "description": "Syntax-check OpenSCAD code" },
+    { "name": "open_viewer", "description": "Open interactive 3D viewer in browser" },
+    { "name": "cheatsheet", "description": "OpenSCAD language quick-reference" },
+    { "name": "list_libraries", "description": "Discover installed OpenSCAD libraries" },
+    { "name": "get_version", "description": "Check engine info (WASM or native)" },
+    { "name": "read_scad_file", "description": "Read an existing .scad file" }
+  ],
+  "tools_generated": false,
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}
