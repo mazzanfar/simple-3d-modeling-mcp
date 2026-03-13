@@ -3,16 +3,21 @@ import { createEngine } from "../../src/engine/index.js";
 import { ViewerServer } from "../../src/viewer/index.js";
 import { renderMultiView } from "../../src/rendering/index.js";
 import { renderTurntable } from "../../src/rendering/index.js";
-import sharp from "sharp";
+// @ts-expect-error — no type declarations
+import UPNG from "upng-js";
 import type { Engine, RenderPngOptions, RenderResult, ExportOptions, ValidateResult } from "../../src/engine/types.js";
 
 /** Mock engine for rendering tests (WASM can't render PNGs) */
 async function createMockPngEngine(): Promise<{ engine: Engine; realEngine: Engine }> {
   const realEngine = await createEngine({ forceWasm: true });
-  const pngBuf = await sharp({
-    create: { width: 128, height: 128, channels: 4, background: { r: 100, g: 100, b: 255, alpha: 1 } },
-  }).png().toBuffer();
-  const pngBytes = new Uint8Array(pngBuf);
+  const rgba = new Uint8Array(128 * 128 * 4);
+  for (let i = 0; i < 128 * 128; i++) {
+    rgba[i * 4] = 100;
+    rgba[i * 4 + 1] = 100;
+    rgba[i * 4 + 2] = 255;
+    rgba[i * 4 + 3] = 255;
+  }
+  const pngBytes = new Uint8Array(UPNG.encode([rgba.buffer], 128, 128, 0));
 
   const mockEngine: Engine = {
     name: realEngine.name,

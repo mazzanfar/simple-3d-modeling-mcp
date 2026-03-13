@@ -1,14 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { renderTurntable } from "../../src/rendering/turntable.js";
-import sharp from "sharp";
+// @ts-expect-error — no type declarations
+import UPNG from "upng-js";
 import type { Engine, RenderPngOptions, RenderResult, ExportOptions, ValidateResult } from "../../src/engine/types.js";
 
 /** Create a tiny solid-color PNG for testing */
-async function makeTinyPng(width: number, height: number): Promise<Uint8Array> {
-  const buf = await sharp({
-    create: { width, height, channels: 4, background: { r: 100, g: 100, b: 255, alpha: 1 } },
-  }).png().toBuffer();
-  return new Uint8Array(buf);
+function makeTinyPng(width: number, height: number): Uint8Array {
+  const rgba = new Uint8Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    rgba[i * 4] = 100;
+    rgba[i * 4 + 1] = 100;
+    rgba[i * 4 + 2] = 255;
+    rgba[i * 4 + 3] = 255;
+  }
+  return new Uint8Array(UPNG.encode([rgba.buffer], width, height, 0));
 }
 
 /** Mock engine that returns a pre-made PNG from renderPng */
@@ -31,7 +36,7 @@ function createMockEngine(pngBytes: Uint8Array): Engine {
 
 describe("renderTurntable", () => {
   it("renders an APNG turntable animation", async () => {
-    const png = await makeTinyPng(64, 64);
+    const png = makeTinyPng(64, 64);
     const engine = createMockEngine(png);
     const result = await renderTurntable(engine, {
       code: "cube([10, 10, 10]);",
