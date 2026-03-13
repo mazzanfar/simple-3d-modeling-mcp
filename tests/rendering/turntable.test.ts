@@ -57,7 +57,7 @@ describe("renderTurntable", () => {
         return { success: false, stdout: "", stderr: "error", warnings: [], errors: ["render failed"] };
       },
       async exportModel(): Promise<RenderResult> {
-        return { success: false, stdout: "", stderr: "", warnings: [], errors: [] };
+        return { success: false, stdout: "", stderr: "", warnings: [], errors: ["render failed"] };
       },
       async validate(): Promise<ValidateResult> { return { valid: false, warnings: [], errors: [] }; },
       async version() { return "fail"; },

@@ -61,7 +61,7 @@ describe("renderMultiView", () => {
         return { success: false, stdout: "", stderr: "render error", warnings: [], errors: ["syntax error"] };
       },
       async exportModel(): Promise<RenderResult> {
-        return { success: false, stdout: "", stderr: "", warnings: [], errors: [] };
+        return { success: false, stdout: "", stderr: "", warnings: [], errors: ["syntax error"] };
       },
       async validate(): Promise<ValidateResult> { return { valid: false, warnings: [], errors: [] }; },
       async version() { return "fail"; },

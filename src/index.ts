@@ -157,17 +157,6 @@ server.tool(
     });
 
     if (!result.success || !result.outputBytes) {
-      // Fallback: single software-rendered preview
-      const stl = await engine.exportModel({ code, format: "stl", params });
-      if (stl.success && stl.outputBytes) {
-        const fallback = await renderStlToPng({ stlBytes: stl.outputBytes, width: width ?? 512, height: height ?? 512 });
-        return {
-          content: [
-            { type: "image" as const, data: Buffer.from(fallback).toString("base64"), mimeType: "image/png" },
-            { type: "text" as const, text: "Note: turntable animation not available with WASM engine. Showing static preview. Install native OpenSCAD for animated turntables." },
-          ],
-        };
-      }
       return {
         content: [{ type: "text", text: `Turntable render failed.\n\n${result.errors.join("\n")}` }],
         isError: true,
@@ -205,17 +194,6 @@ server.tool(
     });
 
     if (!result.success || !result.outputBytes) {
-      // Fallback: single software-rendered preview
-      const stl = await engine.exportModel({ code, format: "stl", params });
-      if (stl.success && stl.outputBytes) {
-        const fallback = await renderStlToPng({ stlBytes: stl.outputBytes, width: width ?? 512, height: height ?? 512 });
-        return {
-          content: [
-            { type: "image" as const, data: Buffer.from(fallback).toString("base64"), mimeType: "image/png" },
-            { type: "text" as const, text: "Note: multi-view grid not available with WASM engine. Showing single preview. Install native OpenSCAD for multi-view grids." },
-          ],
-        };
-      }
       return {
         content: [{ type: "text", text: `Multi-view render failed.\n\n${result.errors.join("\n")}` }],
         isError: true,

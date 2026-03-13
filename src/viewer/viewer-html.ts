@@ -51,6 +51,45 @@ export function generateViewerHtml(): string {
   }
   .export-btn:hover { background: rgba(74,158,255,0.25); }
 
+  /* Slicer split-button */
+  .slicer-split {
+    position: relative; display: flex; margin-top: 6px;
+  }
+  .slicer-split .slicer-main {
+    flex: 1; padding: 8px 10px; background: rgba(74,158,255,0.15);
+    border: 1px solid rgba(74,158,255,0.3); border-right: none;
+    color: #4a9eff; border-radius: 6px 0 0 6px; font-size: 12px;
+    cursor: pointer; text-align: center; white-space: nowrap;
+  }
+  .slicer-split .slicer-main:hover { background: rgba(74,158,255,0.25); }
+  .slicer-split .slicer-toggle {
+    padding: 8px 8px; background: rgba(74,158,255,0.15);
+    border: 1px solid rgba(74,158,255,0.3);
+    color: #4a9eff; border-radius: 0 6px 6px 0; font-size: 10px;
+    cursor: pointer; display: flex; align-items: center;
+  }
+  .slicer-split .slicer-toggle:hover { background: rgba(74,158,255,0.25); }
+  .slicer-menu {
+    display: none; position: absolute; bottom: 100%; left: 0; right: 0;
+    background: #1e1e38; border: 1px solid rgba(74,158,255,0.3);
+    border-radius: 6px; margin-bottom: 4px; overflow: hidden; z-index: 100;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
+  }
+  .slicer-menu.open { display: block; }
+  .slicer-menu-item {
+    padding: 7px 10px; font-size: 12px; color: #aaa; cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .slicer-menu-item:last-child { border-bottom: none; }
+  .slicer-menu-item:hover { background: rgba(74,158,255,0.15); color: #4a9eff; }
+  .slicer-menu-item.selected { color: #4a9eff; }
+
+  /* Light mode slicer overrides */
+  body.light .slicer-menu { background: #e0e0e0; border-color: rgba(0,0,0,0.12); box-shadow: 0 -4px 12px rgba(0,0,0,0.1); }
+  body.light .slicer-menu-item { color: #555; border-bottom-color: rgba(0,0,0,0.05); }
+  body.light .slicer-menu-item:hover { background: rgba(74,158,255,0.15); color: #2a7de1; }
+  body.light .slicer-menu-item.selected { color: #2a7de1; }
+
   /* Appearance controls */
   .appearance-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -85,7 +124,6 @@ export function generateViewerHtml(): string {
   body.light .toggle-btn:hover { background: rgba(0,0,0,0.12); color: #222; }
   body.light .appearance-row { color: #555; }
   body.light .appearance-row input[type="color"] { border-color: #bbb; }
-  body.light #slicer-select { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.12); color: #555; }
 
   /* Controls bar */
   #controls {
@@ -159,19 +197,19 @@ export function generateViewerHtml(): string {
   <div class="sidebar-section">
     <h4>Export</h4>
     <a id="download-stl" class="export-btn" style="display:none;">↓ Download STL</a>
-    <div id="slicer-row" style="display:none; margin-top:6px;">
-      <select id="slicer-select" style="
-        width:100%; padding:7px 8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
-        color:#aaa; border-radius:6px 6px 0 0; font-size:12px; cursor:pointer; appearance:auto;
-      ">
-        <option value="default">System Default</option>
-        <option value="bambu">Bambu Studio</option>
-        <option value="orca">OrcaSlicer</option>
-        <option value="prusa">PrusaSlicer</option>
-        <option value="cura">UltiMaker Cura</option>
-        <option value="creality">Creality Print</option>
-      </select>
-      <button id="open-slicer-btn" class="export-btn" style="margin-top:0; border-radius:0 0 6px 6px; border-top:0;" onclick="openInSlicer()">🔧 Open in Slicer</button>
+    <div id="slicer-row" style="display:none;">
+      <div class="slicer-split">
+        <button id="open-slicer-btn" class="slicer-main" onclick="openInSlicer()">🔧 Open in Slicer</button>
+        <button class="slicer-toggle" onclick="toggleSlicerMenu(event)">▼</button>
+        <div id="slicer-menu" class="slicer-menu">
+          <div class="slicer-menu-item selected" data-value="default" onclick="selectSlicer(this)">System Default</div>
+          <div class="slicer-menu-item" data-value="bambu" onclick="selectSlicer(this)">Bambu Studio</div>
+          <div class="slicer-menu-item" data-value="orca" onclick="selectSlicer(this)">OrcaSlicer</div>
+          <div class="slicer-menu-item" data-value="prusa" onclick="selectSlicer(this)">PrusaSlicer</div>
+          <div class="slicer-menu-item" data-value="cura" onclick="selectSlicer(this)">UltiMaker Cura</div>
+          <div class="slicer-menu-item" data-value="creality" onclick="selectSlicer(this)">Creality Print</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -485,17 +523,37 @@ window.changeColor = (hex) => {
   material.color.copy(c);
   wireMat.color.copy(c);
 };
+let selectedSlicer = 'default';
+let selectedSlicerLabel = 'System Default';
+
+window.toggleSlicerMenu = (e) => {
+  e.stopPropagation();
+  document.getElementById('slicer-menu').classList.toggle('open');
+};
+
+window.selectSlicer = (el) => {
+  selectedSlicer = el.dataset.value;
+  selectedSlicerLabel = el.textContent;
+  document.querySelectorAll('.slicer-menu-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('slicer-menu').classList.remove('open');
+  document.getElementById('open-slicer-btn').textContent = '🔧 ' + selectedSlicerLabel;
+};
+
+document.addEventListener('click', () => {
+  document.getElementById('slicer-menu').classList.remove('open');
+});
+
 window.openInSlicer = async () => {
   if (!currentVersion) return;
   const btn = document.getElementById('open-slicer-btn');
-  const slicer = document.getElementById('slicer-select').value;
   btn.textContent = 'Opening...';
   try {
-    const res = await fetch('/open-in-slicer/' + currentVersion + '?slicer=' + encodeURIComponent(slicer), { method: 'POST' });
+    const res = await fetch('/open-in-slicer/' + currentVersion + '?slicer=' + encodeURIComponent(selectedSlicer), { method: 'POST' });
     if (!res.ok) btn.textContent = 'Failed — slicer not found';
     else btn.textContent = '✓ Opened';
   } catch { btn.textContent = 'Failed'; }
-  setTimeout(() => { btn.textContent = '🔧 Open in Slicer'; }, 3000);
+  setTimeout(() => { btn.textContent = '🔧 ' + selectedSlicerLabel; }, 3000);
 };
 
 // --- Resize ---
