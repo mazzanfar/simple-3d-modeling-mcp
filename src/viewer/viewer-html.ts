@@ -134,7 +134,7 @@ export function generateViewerHtml(): string {
 <div id="sidebar">
   <div class="sidebar-section">
     <h4>Model History</h4>
-    <div id="history-list"><div style="color:#555;font-size:11px;">No models yet</div></div>
+    <div id="history-list" style="max-height:200px;overflow-y:auto;"><div style="color:#555;font-size:11px;">No models yet</div></div>
   </div>
   <div class="sidebar-section">
     <h4>Dimensions</h4>
@@ -310,7 +310,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 viewport.appendChild(renderer.domElement);
 
 scene.background = new THREE.Color(0x1a1a2e);
-scene.add(new THREE.AmbientLight(0x404060, 0.6));
+const ambientLight = new THREE.AmbientLight(0x404060, 0.6); scene.add(ambientLight);
 const d1 = new THREE.DirectionalLight(0xffffff, 0.8); d1.position.set(5,10,7); scene.add(d1);
 const d2 = new THREE.DirectionalLight(0x8888ff, 0.3); d2.position.set(-5,-3,-5); scene.add(d2);
 
@@ -470,6 +470,13 @@ window.toggleTheme = () => {
   document.body.classList.toggle('light', !isDark);
   document.getElementById('theme-btn').textContent = isDark ? 'Light' : 'Dark';
   scene.background = new THREE.Color(isDark ? 0x1a1a2e : 0xf0f0f0);
+  // Adjust lighting for theme
+  ambientLight.color.set(isDark ? 0x404060 : 0x909090);
+  ambientLight.intensity = isDark ? 0.6 : 0.8;
+  d1.intensity = isDark ? 0.8 : 1.0;
+  d2.color.set(isDark ? 0x8888ff : 0xaaaacc);
+  d2.intensity = isDark ? 0.3 : 0.4;
+  material.specular.set(isDark ? 0x332200 : 0x666666);
   rebuildGrid();
 };
 

@@ -18,7 +18,9 @@ This server uses the standard [Model Context Protocol](https://modelcontextproto
 
 ### Claude Desktop
 
-Add to your `claude_desktop_config.json`:
+[One-click install](claude://mcp/install?name=simple-3d-modeling&command=npx&args=-y,simple-3d-modeling-mcp)
+
+Or manually add to your `claude_desktop_config.json`:
 
 ```json
 {
