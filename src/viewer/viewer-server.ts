@@ -3,7 +3,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir, platform } from "node:os";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { ViewerState } from "./viewer-state.js";
 import { generateViewerHtml } from "./viewer-html.js";
 
@@ -15,24 +15,24 @@ const SLICERS: Record<string, { mac?: string; win?: string; linux?: string }> = 
   creality: { mac: "Creality Print",      win: "Creality Print",     linux: "creality-print" },
 };
 
-function buildSlicerCommand(slicer: string, filePath: string, os: string): string {
+function buildSlicerCommand(slicer: string, filePath: string, os: string): { cmd: string; args: string[] } {
   if (slicer === "default") {
-    if (os === "darwin") return `open "${filePath}"`;
-    if (os === "win32") return `start "" "${filePath}"`;
-    return `xdg-open "${filePath}"`;
+    if (os === "darwin") return { cmd: "open", args: [filePath] };
+    if (os === "win32") return { cmd: "cmd", args: ["/c", "start", "", filePath] };
+    return { cmd: "xdg-open", args: [filePath] };
   }
 
   const entry = SLICERS[slicer];
   if (!entry) {
     // Unknown slicer — try as app name directly
-    if (os === "darwin") return `open -a "${slicer}" "${filePath}"`;
-    if (os === "win32") return `start "" "${slicer}" "${filePath}"`;
-    return `${slicer} "${filePath}"`;
+    if (os === "darwin") return { cmd: "open", args: ["-a", slicer, filePath] };
+    if (os === "win32") return { cmd: "cmd", args: ["/c", "start", "", slicer, filePath] };
+    return { cmd: slicer, args: [filePath] };
   }
 
-  if (os === "darwin") return `open -a "${entry.mac}" "${filePath}"`;
-  if (os === "win32") return `start "" "${entry.win}" "${filePath}"`;
-  return `${entry.linux} "${filePath}"`;
+  if (os === "darwin") return { cmd: "open", args: ["-a", entry.mac!, filePath] };
+  if (os === "win32") return { cmd: "cmd", args: ["/c", "start", "", entry.win!, filePath] };
+  return { cmd: entry.linux!, args: [filePath] };
 }
 
 export class ViewerServer {
@@ -94,8 +94,8 @@ export class ViewerServer {
           await writeFile(filePath, Buffer.from(model.stlBytes));
 
           const os = platform();
-          const cmd = buildSlicerCommand(slicer, filePath, os);
-          exec(cmd, (err) => {
+          const { cmd, args } = buildSlicerCommand(slicer, filePath, os);
+          execFile(cmd, args, (err) => {
             if (err) {
               res.writeHead(500); res.end("Failed to open slicer");
             } else {

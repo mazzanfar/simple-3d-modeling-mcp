@@ -1,5 +1,11 @@
 # simple-3d-modeling-mcp
 
+[![npm version](https://img.shields.io/npm/v/simple-3d-modeling-mcp)](https://www.npmjs.com/package/simple-3d-modeling-mcp)
+[![npm provenance](https://img.shields.io/badge/npm-provenance-blue)](https://www.npmjs.com/package/simple-3d-modeling-mcp#provenance)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mazzanfar/simple-3d-modeling-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/mazzanfar/simple-3d-modeling-mcp)
+[![CodeQL](https://github.com/mazzanfar/simple-3d-modeling-mcp/actions/workflows/codeql.yml/badge.svg)](https://github.com/mazzanfar/simple-3d-modeling-mcp/actions/workflows/codeql.yml)
+[![License: GPL-2.0](https://img.shields.io/badge/License-GPL--2.0-green.svg)](https://opensource.org/licenses/GPL-2.0)
+
 [![Install with Claude Desktop](https://img.shields.io/badge/Install%20with-Claude%20Desktop-orange?style=for-the-badge&logo=claude)](https://github.com/mazzanfar/simple-3d-modeling-mcp/releases/latest/download/simple-3d-modeling.mcpb)
 
 An MCP (Model Context Protocol) server that lets anyone create, iterate on, and export 3D models through natural conversation with an LLM. Works with **any MCP-compatible client** — Claude, ChatGPT, Codex, and more. **Zero setup** — the OpenSCAD engine is bundled via WebAssembly. No system install needed.
