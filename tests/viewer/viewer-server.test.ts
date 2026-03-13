@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
+import { WebSocket } from "ws";
 import { ViewerServer } from "../../src/viewer/viewer-server.js";
 
 describe("ViewerServer", () => {

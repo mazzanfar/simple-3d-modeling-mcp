@@ -87,7 +87,7 @@ server.tool(
     view: z.string().optional().describe("Camera position: 'translateX,translateY,translateZ,rotX,rotY,rotZ,distance'"),
     width: z.number().optional().default(1024).describe("Image width in pixels"),
     height: z.number().optional().default(768).describe("Image height in pixels"),
-    params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional().describe("OpenSCAD variable overrides"),
+    params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional().describe("OpenSCAD variable overrides"),
     colorscheme: z.string().optional().default("Tomorrow Night").describe("Color scheme name"),
   },
   async ({ code, view, width, height, params, colorscheme }) => {
@@ -143,7 +143,7 @@ server.tool(
     frames: z.number().optional().default(24).describe("Number of frames (default 24)"),
     width: z.number().optional().default(512).describe("Image width"),
     height: z.number().optional().default(512).describe("Image height"),
-    params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+    params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   },
   async ({ code, frames, width, height, params }) => {
     // Always push to viewer
@@ -190,7 +190,7 @@ server.tool(
     views: z.array(z.string()).optional().default(["front", "right", "top", "perspective"]).describe("View names"),
     width: z.number().optional().default(512).describe("Per-cell width"),
     height: z.number().optional().default(512).describe("Per-cell height"),
-    params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+    params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   },
   async ({ code, views, width, height, params }) => {
     // Always push to viewer
@@ -237,7 +237,7 @@ server.tool(
     code: z.string().describe("OpenSCAD source code"),
     format: z.string().optional().default("stl").describe("Output format: stl, 3mf, amf, off, dxf, svg"),
     filename: z.string().optional().describe("Output filename"),
-    params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+    params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   },
   async ({ code, format, filename, params }) => {
     const result = await engine.exportModel({ code, format, filename, params });
