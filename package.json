@@ -29,7 +29,11 @@
     "claude",
     "ai"
   ],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mazzanfar/simple-3d-modeling-mcp"
+  },
+  "author": "mazzanfar",
   "license": "GPL-2.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
