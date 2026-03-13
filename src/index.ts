@@ -103,12 +103,14 @@ server.tool(
     });
 
     let imageBytes: Uint8Array | undefined = result.outputBytes;
+    let usedFallback = false;
 
     // Fallback: software render from STL when WASM can't produce PNG
     if (!imageBytes) {
       const stl = await engine.exportModel({ code, format: "stl", params });
       if (stl.success && stl.outputBytes) {
         imageBytes = await renderStlToPng({ stlBytes: stl.outputBytes, width: w, height: h, camera: view });
+        usedFallback = true;
       }
     }
 
@@ -123,7 +125,8 @@ server.tool(
       { type: "image" as const, data: Buffer.from(imageBytes).toString("base64"), mimeType: "image/png" },
     ];
 
-    if (result.warnings.length > 0) {
+    // Only show warnings from the native engine — suppress WASM fallback noise
+    if (!usedFallback && result.warnings.length > 0) {
       parts.push({ type: "text" as const, text: `Warnings:\n${result.warnings.join("\n")}` });
     }
     if (viewerUrl) {

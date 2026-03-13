@@ -9,7 +9,9 @@ export interface CreateEngineOptions {
 }
 
 export async function createEngine(opts: CreateEngineOptions = {}): Promise<Engine> {
-  if (opts.forceWasm) {
+  // Use native only when explicitly requested via executablePath or OPENSCAD_PATH.
+  // Default to WASM for zero-setup experience.
+  if (opts.forceWasm || !opts.executablePath) {
     return new WasmEngine(opts.workDir);
   }
 
