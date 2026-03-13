@@ -1,5 +1,7 @@
 # simple-3d-modeling-mcp
 
+[![Install with Claude Desktop](https://img.shields.io/badge/Install%20with-Claude%20Desktop-orange?style=for-the-badge&logo=claude)](https://github.com/mazzanfar/simple-3d-modeling-mcp/releases/latest/download/simple-3d-modeling.mcpb)
+
 An MCP (Model Context Protocol) server that lets anyone create, iterate on, and export 3D models through natural conversation with an LLM. Works with **any MCP-compatible client** — Claude, ChatGPT, Codex, and more. **Zero setup** — the OpenSCAD engine is bundled via WebAssembly. No system install needed.
 
 ## Features
