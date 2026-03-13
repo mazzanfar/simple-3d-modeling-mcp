@@ -38,7 +38,6 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
     "openscad-wasm": "^0.0.4",
-    "sharp": "^0.34.5",
     "three": "^0.183.2",
     "upng-js": "^2.1.0",
     "ws": "^8.19.0",

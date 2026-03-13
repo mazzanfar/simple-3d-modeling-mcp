@@ -2,7 +2,6 @@ import { getTurntableCameras } from "./camera-presets.js";
 import type { Engine, RenderResult } from "../engine/types.js";
 // @ts-expect-error — no type declarations
 import UPNG from "upng-js";
-import sharp from "sharp";
 
 export interface TurntableOptions {
   code: string;
@@ -36,11 +35,12 @@ export async function renderTurntable(
     renders.push(result);
   }
 
-  // Convert PNGs to raw RGBA
+  // Convert PNGs to raw RGBA using UPNG (pure JS)
   const rawFrames: ArrayBuffer[] = [];
   for (const r of renders) {
-    const { data } = await sharp(Buffer.from(r.outputBytes!)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    rawFrames.push(new Uint8Array(data).buffer as ArrayBuffer);
+    const decoded = UPNG.decode(r.outputBytes!.buffer);
+    const rgbaFrames = UPNG.toRGBA8(decoded);
+    rawFrames.push(rgbaFrames[0]);
   }
 
   // Assemble APNG — ~2s total animation

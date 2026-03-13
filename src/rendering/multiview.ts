@@ -1,4 +1,5 @@
-import sharp from "sharp";
+// @ts-expect-error — no type declarations
+import UPNG from "upng-js";
 import { getCameraString } from "./camera-presets.js";
 import type { Engine, RenderResult } from "../engine/types.js";
 
@@ -33,39 +34,47 @@ export async function renderMultiView(
     renders.push(result);
   }
 
-  // Composite into grid with labels
+  // Composite into grid (no labels — avoids native SVG dependency)
   const cols = 2;
   const rows = Math.ceil(views.length / cols);
-  const labelHeight = 24;
   const gridW = cols * cellW;
-  const gridH = rows * (cellH + labelHeight);
+  const gridH = rows * cellH;
 
-  // Create label images
-  const composites: sharp.OverlayOptions[] = [];
+  // Create RGBA pixel buffer for the grid
+  const gridPixels = new Uint8Array(gridW * gridH * 4);
+  // Fill with background color
+  for (let i = 0; i < gridW * gridH; i++) {
+    gridPixels[i * 4] = 22;
+    gridPixels[i * 4 + 1] = 22;
+    gridPixels[i * 4 + 2] = 42;
+    gridPixels[i * 4 + 3] = 255;
+  }
+
+  // Blit each rendered cell into the grid
   for (let i = 0; i < renders.length; i++) {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const x = col * cellW;
-    const y = row * (cellH + labelHeight);
+    const offsetX = col * cellW;
+    const offsetY = row * cellH;
 
-    // Label SVG
-    const labelSvg = Buffer.from(
-      `<svg width="${cellW}" height="${labelHeight}">
-        <rect width="${cellW}" height="${labelHeight}" fill="#16162a"/>
-        <text x="${cellW / 2}" y="${labelHeight - 6}" text-anchor="middle"
-              font-family="system-ui" font-size="12" fill="#888">${views[i]}</text>
-      </svg>`
-    );
-    composites.push({ input: labelSvg, left: x, top: y });
-    composites.push({ input: Buffer.from(renders[i].outputBytes!), left: x, top: y + labelHeight });
+    // Decode the rendered PNG to raw RGBA
+    const decoded = UPNG.decode(renders[i].outputBytes!.buffer);
+    const cellRgba = new Uint8Array(UPNG.toRGBA8(decoded)[0]);
+
+    // Copy pixels row by row
+    for (let y = 0; y < cellH; y++) {
+      for (let x = 0; x < cellW; x++) {
+        const srcIdx = (y * cellW + x) * 4;
+        const dstIdx = ((offsetY + y) * gridW + (offsetX + x)) * 4;
+        gridPixels[dstIdx] = cellRgba[srcIdx];
+        gridPixels[dstIdx + 1] = cellRgba[srcIdx + 1];
+        gridPixels[dstIdx + 2] = cellRgba[srcIdx + 2];
+        gridPixels[dstIdx + 3] = cellRgba[srcIdx + 3];
+      }
+    }
   }
 
-  const outputBytes = await sharp({
-    create: { width: gridW, height: gridH, channels: 4, background: { r: 22, g: 22, b: 42, alpha: 1 } },
-  })
-    .composite(composites)
-    .png()
-    .toBuffer();
+  const outputBytes = new Uint8Array(UPNG.encode([gridPixels.buffer], gridW, gridH, 0));
 
   return {
     success: true,

@@ -3,10 +3,11 @@
  *
  * Falls back to this when WASM OpenSCAD can't render PNG (no OpenGL).
  * Uses basic triangle rasterization with z-buffer and flat shading,
- * then converts the pixel buffer to PNG via sharp.
+ * then converts the pixel buffer to PNG via upng-js (pure JS, no native deps).
  */
 
-import sharp from "sharp";
+// @ts-expect-error — no type declarations
+import UPNG from "upng-js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -163,9 +164,14 @@ export async function renderStlToPng(opts: SoftwareRenderOptions): Promise<Uint8
   const triangles = parseSTL(stlBytes);
   if (triangles.length === 0) {
     // Return a blank image
-    return new Uint8Array(
-      await sharp({ create: { width, height, channels: 3, background: bg } }).png().toBuffer()
-    );
+    const blankPixels = new Uint8Array(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      blankPixels[i * 4] = bg.r;
+      blankPixels[i * 4 + 1] = bg.g;
+      blankPixels[i * 4 + 2] = bg.b;
+      blankPixels[i * 4 + 3] = 255;
+    }
+    return new Uint8Array(UPNG.encode([blankPixels.buffer], width, height, 0));
   }
 
   // Parse camera string
@@ -299,9 +305,14 @@ export async function renderStlToPng(opts: SoftwareRenderOptions): Promise<Uint8
     }
   }
 
-  const pngBuffer = await sharp(pixels, { raw: { width, height, channels: 3 } })
-    .png()
-    .toBuffer();
+  // Convert RGB to RGBA for UPNG
+  const rgba = new Uint8Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    rgba[i * 4] = pixels[i * 3];
+    rgba[i * 4 + 1] = pixels[i * 3 + 1];
+    rgba[i * 4 + 2] = pixels[i * 3 + 2];
+    rgba[i * 4 + 3] = 255;
+  }
 
-  return new Uint8Array(pngBuffer);
+  return new Uint8Array(UPNG.encode([rgba.buffer], width, height, 0));
 }

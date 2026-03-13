@@ -1,14 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { renderMultiView } from "../../src/rendering/multiview.js";
-import sharp from "sharp";
+// @ts-expect-error — no type declarations
+import UPNG from "upng-js";
 import type { Engine, RenderPngOptions, RenderResult, ExportOptions, ValidateResult } from "../../src/engine/types.js";
 
 /** Create a tiny solid-color PNG for testing */
-async function makeTinyPng(width: number, height: number): Promise<Uint8Array> {
-  const buf = await sharp({
-    create: { width, height, channels: 4, background: { r: 100, g: 100, b: 255, alpha: 1 } },
-  }).png().toBuffer();
-  return new Uint8Array(buf);
+function makeTinyPng(width: number, height: number): Uint8Array {
+  const rgba = new Uint8Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    rgba[i * 4] = 100;
+    rgba[i * 4 + 1] = 100;
+    rgba[i * 4 + 2] = 255;
+    rgba[i * 4 + 3] = 255;
+  }
+  return new Uint8Array(UPNG.encode([rgba.buffer], width, height, 0));
 }
 
 /** Mock engine that returns a pre-made PNG from renderPng */
@@ -31,7 +36,7 @@ function createMockEngine(pngBytes: Uint8Array): Engine {
 
 describe("renderMultiView", () => {
   it("renders a grid of views as a single PNG", async () => {
-    const png = await makeTinyPng(128, 128);
+    const png = makeTinyPng(128, 128);
     const engine = createMockEngine(png);
     const result = await renderMultiView(engine, {
       code: "cube([10, 10, 10]);",
@@ -42,10 +47,10 @@ describe("renderMultiView", () => {
     expect(result.outputBytes).toBeDefined();
     expect(result.outputBytes![0]).toBe(0x89); // PNG magic
 
-    // Verify dimensions: 2 cols x 1 row, each cell 128px + 24px label
-    const meta = await sharp(Buffer.from(result.outputBytes!)).metadata();
-    expect(meta.width).toBe(256); // 2 * 128
-    expect(meta.height).toBe(152); // 1 * (128 + 24)
+    // Verify dimensions: 2 cols x 1 row, each cell 128px (no label row)
+    const decoded = UPNG.decode(result.outputBytes!.buffer);
+    expect(decoded.width).toBe(256); // 2 * 128
+    expect(decoded.height).toBe(128); // 1 * 128
   });
 
   it("returns failure if engine render fails", async () => {
