@@ -36,11 +36,11 @@
   "author": "mazzanfar",
   "license": "GPL-2.0",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "openscad-wasm": "^0.0.4",
     "three": "^0.183.2",
     "upng-js": "^2.1.0",
-    "ws": "^8.19.0",
+    "ws": "^8.21.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -48,7 +48,7 @@
     "@types/three": "^0.183.1",
     "@types/ws": "^8.18.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.12"
   },
   "engines": {
     "node": ">=18.0.0"
