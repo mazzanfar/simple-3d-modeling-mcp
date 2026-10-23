@@ -30,7 +30,7 @@ let viewerAutoOpened = false;
 
 const server = new McpServer({
   name: "simple-3d-modeling-mcp",
-  version: "0.2.0",
+  version: "1.2.13",
 });
 
 // ---------------------------------------------------------------------------
