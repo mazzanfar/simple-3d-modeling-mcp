@@ -27,9 +27,9 @@ cp -r "$PROJECT_DIR/dist/"* "$BUILD_DIR/server/"
 
 # 3. Install production dependencies into build dir
 echo "→ Installing production dependencies..."
-cp "$PROJECT_DIR/package.json" "$BUILD_DIR/server/package.json"
+cp "$PROJECT_DIR/package.json" "$PROJECT_DIR/package-lock.json" "$BUILD_DIR/server/"
 cd "$BUILD_DIR/server"
-npm install --omit=dev --ignore-scripts=false
+npm ci --omit=dev
 cd "$PROJECT_DIR"
 
 # 4. Copy manifest
