@@ -1,10 +1,10 @@
 {
   "name": "simple-3d-modeling-mcp",
-  "version": "1.2.13",
+  "version": "1.2.14",
   "description": "MCP server that connects Claude (and other AI assistants) to OpenSCAD for 3D modeling",
   "type": "module",
   "bin": {
-    "simple-3d-modeling-mcp": "./dist/index.js"
+    "simple-3d-modeling-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

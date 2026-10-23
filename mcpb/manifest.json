@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "simple-3d-modeling",
   "display_name": "Simple 3D Modeling",
-  "version": "1.2.7",
+  "version": "1.2.14",
   "description": "Create, preview, and export 3D models through natural conversation. Zero setup — OpenSCAD engine bundled via WebAssembly.",
   "author": {
     "name": "mazzanfar",
