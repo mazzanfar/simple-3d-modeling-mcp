@@ -15,9 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Release tooling uses the newer supported LTS; the package supports patched Node 22 and 24 LTS lines.
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 24.22.1
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
